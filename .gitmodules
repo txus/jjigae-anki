@@ -1,0 +1,6 @@
+[submodule "anki"]
+	path = anki
+	url = git://github.com/dae/anki.git
+[submodule "lib/hanja-dictionary"]
+	path = lib/hanja-dictionary
+	url = git://github.com/dbravender/hanja-dictionary.git

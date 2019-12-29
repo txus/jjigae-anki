@@ -1,0 +1,13 @@
+venv/
+.anki/User\ 1
+.anki/*.log
+.anki/*.db
+.anki/README.txt
+__pycache__
+.pytest_cache
+.DS_Store
+jjigae/meta.json
+package/
+package_cache/
+package.ankiaddon
+jjigae/hanjadic.sqlite
