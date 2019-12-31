@@ -8,7 +8,9 @@ import subprocess
 import tempfile
 from urllib import request
 
-SOURCE_FILES = ["__init__.py", "jjigae/hanjadic.sqlite"] + glob.glob(f"jjigae/*.py")
+SOURCE_FILES = ["main.py", "jjigae/hanjadic.sqlite", "jjigae/vocab.csv"] + glob.glob(
+    f"jjigae/*.py"
+)
 
 DEPENDENCIES_PYPI = [  # [dep.strip() for dep in open("requirements.txt").readlines()] + [
     # "beautifulsoup4",
@@ -17,14 +19,10 @@ DEPENDENCIES_PYPI = [  # [dep.strip() for dep in open("requirements.txt").readli
 ]
 
 OVERRIDES = {"beautifulsoup4": "bs4"}
+OVERRIDE_COPY = {"cached_property": "cached_property.py"}
 
-DEPENDENCIES_LOCAL = [
-    "beautifulsoup4",
-    "lxml",
-    "requests",
-    "ndic",
-    "gtts",
-    "gtts_token",
+DEPENDENCIES_LOCAL = ["beautifulsoup4", "lxml", "requests"] + [
+    x.strip() for x in open("requirements.txt").readlines()
 ]
 
 PACKAGE_CACHE_DIR = "package_cache"
@@ -114,20 +112,19 @@ def copy_dependencies_from_local():
             OVERRIDES[dep_pkg_name] if dep_pkg_name in OVERRIDES else dep_pkg_name
         )
         dirpaths = glob.glob(f"venv/lib/python3.*/site-packages/{pkg_name}*")
-        dirpaths = [
-            path
-            for path in dirpaths
-            if os.path.isdir(path) and not path.endswith("dist-info")
-        ]
+        dirpaths = [path for path in dirpaths if not path.endswith("dist-info")]
         dirpath = dirpaths[-1]
         subdirpath = os.path.join(dirpath, pkg_name)
         if os.path.exists(subdirpath):
             dirpath = subdirpath
-        shutil.copytree(
-            dirpath,
-            f"package/{pkg_name}",
-            ignore=shutil.ignore_patterns("__pycache__"),
-        )
+        if os.path.isdir(dirpath):
+            shutil.copytree(
+                dirpath,
+                f"package/{pkg_name}",
+                ignore=shutil.ignore_patterns("__pycache__"),
+            )
+        else:
+            shutil.copy(dirpath, f"package/")
 
 
 def create_package_zip_file():
@@ -144,9 +141,14 @@ def remove_bad_things():
     )
 
 
+def rename_entry_point():
+    shutil.move("package/main.py", "package/__init__.py")
+
+
 prepare_package_dir_and_zip()
 copy_source_files()
 copy_dependencies_from_pypi()
 copy_dependencies_from_local()
 remove_bad_things()
+rename_entry_point()
 create_package_zip_file()

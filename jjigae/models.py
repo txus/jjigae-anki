@@ -11,6 +11,11 @@
 import anki.stdmodels
 from anki.lang import _
 
+import genanki
+from genanki import Model, Note, Deck
+
+from .augmentation import lookup, tts, silhouette as get_silhouette
+from .prestudy import Term
 from .css import style
 from .card_fields import (
     hanja_button,
@@ -44,12 +49,72 @@ recall_back = u"\n<br>".join([front_side, korean, sound, hanja_button, comment])
 # Add model for korean word to Anki
 ######################################################################
 
-model_name = "Korean (advanced)"
+model_name = "Korean (jjigae)"
+
+KOREAN_NOTE_MODEL_ID = 2828501749
+
+
+def get_model() -> Model:
+    return Model(
+        KOREAN_NOTE_MODEL_ID,
+        model_name,
+        fields=[
+            {"name": "Korean"},
+            {"name": "English"},
+            {"name": "Hanja"},
+            {"name": "Sound"},
+            {"name": "Silhouette"},
+            {"name": "Comment"},
+        ],
+        templates=[
+            {
+                "name": "Recognition",
+                "qfmt": recognition_front,
+                "afmt": recognition_back,
+            },
+            {"name": "Recall", "qfmt": recall_front, "afmt": recall_back},
+        ],
+        css=style,
+    )
+
+
+class KoreanNote(Note):
+    def __init__(self, **kwargs):
+        super().__init__(get_model(), **kwargs)
+
+    @property
+    def guid(self):
+        return genanki.guid_for(self.fields[0], self.fields[2])
+
+
+class ChineseDeck(Deck):
+    def __init__(self, deck_id=None, name=None):
+        super().__init__(deck_id, name)
+
+    def add_term(self, term: Term, tags=[]):
+        the_comment = ""
+        the_comment += term.notes
+        the_comment += " (amb)" if term.ambiguous else ""
+
+        note = KoreanNote(
+            fields=[
+                term.word,
+                lookup(term.word),
+                term.hanja,
+                tts(term.word),
+                get_silhouette(term.word),
+                the_comment,
+            ],
+            tags=tags,
+        )
+        self.add_note(note)
+        pass
 
 
 def add_model(col):
     mm = col.models
     m = mm.new(model_name)
+    m["id"] = KOREAN_NOTE_MODEL_ID
     # Add fields
     for f in fields_list:
         fm = mm.newField(f)
@@ -70,5 +135,4 @@ def add_model(col):
     return m
 
 
-print("ADDING MODEL")
 anki.stdmodels.models.append((lambda: _(model_name), add_model))

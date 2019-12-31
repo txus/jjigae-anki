@@ -11,10 +11,12 @@
 import os
 import re
 
+import gtts
+
 from aqt import mw
 
 
-def get_word_from_google(gtts, source, lang="ko", attempts=3):
+def get_word_from_google(source, lang="ko", attempts=3):
     gTTS = gtts.tts.gTTS
     filename, path = getFilename("_".join([source, "G", lang]), ".mp3")
 
@@ -43,4 +45,3 @@ def getFilename(base, ext):
 
 def stripInvalidChars(s):
     return re.sub('[\\/:\*?"<>\|]', "", s)
-

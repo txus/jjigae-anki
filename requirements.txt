@@ -1,3 +1,6 @@
 ndic
 gtts
 gtts_token
+konlpy
+cached_property
+genanki

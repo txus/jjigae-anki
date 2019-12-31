@@ -2,7 +2,7 @@
 from aqt import mw
 
 # import the "show info" tool from utils.py
-from aqt.utils import showInfo
+from aqt.utils import showInfo, askUserDialog
 
 # import all of the Qt GUI library
 from aqt.qt import QAction
@@ -11,29 +11,19 @@ import ndic
 
 from anki.find import Finder
 
+from typing import Set
+
 from . import models
 
 from . import hanja
 
-from . import tts
+from .ui import PrestudyDialog
+from .augmentation import cleanup, silhouette, tts, lookup
 
 # We're going to add a menu item below. First we want to create a function to
 # be called when the menu item is activated.
 
 import re
-
-
-def cleanup(txt):
-    """Remove all HTML, tags, and others."""
-    if not txt:
-        return ""
-    txt = re.sub(r"<.*?>", "", txt, flags=re.S)
-    txt = txt.replace("&nbsp;", " ")
-    txt = re.sub(r"^\s*", "", txt)
-    txt = re.sub(r"\s*$", "", txt)
-    # txt = re.sub(r"[\s+]", " ", txt)
-    txt = re.sub(r"\{\{c[0-9]+::(.*?)(::.*?)?\}\}", r"\1", txt)
-    return txt
 
 
 def write_back(note, note_dict, fields):
@@ -42,19 +32,6 @@ def write_back(note, note_dict, fields):
             note[f] = note_dict[f]
     note.flush()
     return
-
-
-def silhouette(hangul):
-    def insert_spaces(p):
-        r = ""
-        for i in p.group(0):
-            r += i + " "
-        return r[:-1]
-
-    hangul_unicode = "[\u1100-\u11ff|\uAC00-\uD7AF|\u3130-\u318F]"
-    hangul = re.sub("{}+".format(hangul_unicode), insert_spaces, hangul)
-    txt = re.sub(hangul_unicode, "_", hangul)
-    return txt
 
 
 def fill_missing():
@@ -73,7 +50,7 @@ def fill_missing():
                 mw.progress.update(label=f"[{korean}] Translating...", value=scanned)
                 english = cleanup(note_dict["English"])
                 if korean != "" and english == "":
-                    translation = ndic.search(korean)
+                    translation = lookup(korean)
                     note_dict["Korean"] = korean
                     note_dict["English"] = translation
 
@@ -95,7 +72,7 @@ def fill_missing():
                 mw.progress.update(
                     label=f"[{korean}] Looking up sound...", value=scanned
                 )
-                note_dict["Sound"] = tts.get_word_from_google(korean)
+                note_dict["Sound"] = tts(korean)
 
             write_back(
                 note, note_dict, ["Korean", "English", "Hanja", "Silhouette", "Sound"]
@@ -110,4 +87,7 @@ def load():
     menu = mw.form.menuTools.addMenu("jjigae")
     action = QAction("Fill missing", mw)
     action.triggered.connect(fill_missing)
+    xaction = QAction("Prestudy", mw)
+    xaction.triggered.connect(PrestudyDialog.instantiate_and_run)
     menu.addAction(action)
+    menu.addAction(xaction)
